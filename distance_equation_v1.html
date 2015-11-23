@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Welcome to the playground</title>
+<link rel="stylesheet" href="styles.css" />
+
+  <style>
+  div#stage { width:220px; height:170px; margin:10px; margin-right:50px;
+        background:yellow; border:2px groove; float:right; }
+  p { margin:0; margin-left:10px; color:red; width:220px;
+      height:120px; padding-top:70px;
+      float:left; font-size:14px; }
+  span.display { display:block; }
+  </style>
+
+<script src="../jquery/jquery-1.5.min.js"></script>
+</head>
+<body>
+<p>Hello</p>
+<div id="stage">
+<div id="sprite">xyz</div>
+<div id="sprite1">xyz</div>
+<div id="sprite2">xyz</div>
+<div id="sprite3">xyz</div>
+<div id="sprite4">xyz</div>
+</div>
+<span class="display"></span>
+<span id="sprite-data"></span>
+<div id="distance"></div>
+<div id="ratio"></div>
+<span class="display"></span>
+</body>
+<script>
+$(document).ready(function(){
+    $("#stage").mousemove(function(e){
+      var pageCoords = "( " + e.pageX + ", " + e.pageY + " )";
+      var clientCoords = "( " + e.clientX + ", " + e.clientY + " )";
+      $("span:first").text("( e.pageX, e.pageY ) - " + pageCoords);
+      $("span:last").text("( e.clientX, e.clientY ) - " + clientCoords);
+      var spritePos = $("#sprite").position();
+      var spritePos1 = $("#sprite1").position();
+      var spritePos2 = $("#sprite2").position();
+      var spritePos3 = $("#sprite3").position();
+      var spritePos4 = $("#sprite4").position();
+      $("span#sprite-data").text('sprite div position : ' + spritePos.top + " - top " + spritePos.left + " - left");
+      $("#distance").text("distance: " + getDistance(e,spritePos));
+      $("#ratio").text("ratio: " + opacityRatio(getDistance(e,spritePos)));
+      $("#sprite").css("opacity",(opacityRatio(getDistance(e,spritePos))));
+      $("#sprite1").css("opacity",(opacityRatio(getDistance(e,spritePos1))));
+      $("#sprite2").css("opacity",(opacityRatio(getDistance(e,spritePos2))));
+      $("#sprite3").css("opacity",(opacityRatio(getDistance(e,spritePos3))));
+      $("#sprite4").css("opacity",(opacityRatio(getDistance(e,spritePos4))));
+    });
+});
+function getDistance(e,pos) {
+	return Math.sqrt((Math.pow(e.clientX - pos.left,2))+(Math.pow(e.clientY - pos.top,2)));
+}
+
+function opacityRatio(d) {
+	return (75 - d)/100;
+}
+</script>
+</html>
