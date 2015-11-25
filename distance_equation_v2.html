@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Welcome to the playground</title>
+<link rel="stylesheet" href="styles.css" />
+
+  <style>
+  body {margin:0;padding:0;}
+  span { clear:right;display:block; }
+  div { float:left;margin:0;padding:0; }
+  img { padding:0;margin:0; }
+  div#stage { width:480px;height:285px;margin:0;padding:0;background:lime;border:2px groove;}
+  div#stage > div {margin-bottom:-6px;}
+ </style>
+
+<script src="js/vendor/jquery-1.9.1.min.js"></script>
+</head>
+<body>
+<div id="stage"></div>
+<span class="display"></span>
+<span id="sprite-data"></span>
+<span id="distance"></span>
+<span id="ratio"></span>
+<span class="display"></span>
+</body>
+<script>
+var spriteCount = 135;
+var imgPath = "img/grey_radial_start_burst.jpg";
+
+$(document).ready(function(){
+    createSprites(spriteCount,"stage");
+    $("#stage").mousemove(function(e){
+      createSpriteListners(e,"stage");
+
+      var pageCoords = "( " + e.pageX + ", " + e.pageY + " )";
+      var clientCoords = "( " + e.clientX + ", " + e.clientY + " )";
+      $("span:first").text("( e.pageX, e.pageY ) - " + pageCoords);
+      $("span:last").text("( e.clientX, e.clientY ) - " + clientCoords);
+      var spritePos0 = $("#sprite0").position();
+      $("span#sprite-data").text('sprite div position : ' + spritePos0.top + " - top " + spritePos0.left + " - left");
+      $("#distance").text("distance: " + getDistance(e,spritePos0)).append($("<br/>"));
+      $("#ratio").text("ratio: " + opacityRatio(getDistance(e,spritePos0)));
+
+    });
+});
+function createSprites(count,elm) {
+	for (var i=0;i<count;i++) {
+		var div = $('<div></div>').attr("id","sprite"+i);
+		var img = $('<img/>').attr("src",imgPath).attr("width",32).attr("height",32);
+		$(div).append(img);
+		$("#" + elm).append(div);
+	}
+}
+function createSpriteListners(e,elm) {
+	$("#"+ elm + " div").each(function(i){
+		var spritePos = $("#sprite" + i).position();
+		$("#sprite" + i).css("opacity",(opacityRatio(getDistance(e,spritePos))));
+	});
+}
+function getDistance(e,pos) {
+	return Math.sqrt((Math.pow(e.clientX - pos.left,2))+(Math.pow(e.clientY - pos.top,2)));
+}
+function opacityRatio(d) {
+	return (110 - d)/100;
+}
+</script>
+</html>
