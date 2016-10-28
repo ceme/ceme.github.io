@@ -1,0 +1,11 @@
+svg {
+  height: 10000px;
+  width: 10000px;
+}
+
+ul {
+  list-style: none;
+}
+li {
+  margin: auto auto 9px;
+}
