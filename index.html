@@ -1,397 +1,48 @@
 <!doctype html>
-<html lang="en">
+<html class="no-js">
     <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Zen</title>
-        <style>
-            * {
-                margin: 0;
-                padding: 0;
-                box-sizing: border-box;
-            }
-            body {
-                background: #0d0f14;
-                width: 100vw;
-                height: 100vh;
-                overflow: hidden;
-                cursor: none;
-            }
-            canvas {
-                display: block;
-                width: 100vw;
-                height: 100vh;
-            }
-            #hint {
-                position: fixed;
-                bottom: 32px;
-                left: 50%;
-                transform: translateX(-50%);
-                color: rgba(255, 255, 255, 0.18);
-                font-family:
-                    -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-                font-size: 13px;
-                font-weight: 300;
-                letter-spacing: 0.12em;
-                pointer-events: none;
-                transition: opacity 2s ease;
-                user-select: none;
-            }
-            #hint.hidden {
-                opacity: 0;
-            }
-        </style>
+        <meta charset="utf-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+        <title></title>
+        <meta name="description" content="" />
+        <meta name="viewport" content="width=device-width" />
+
+        <link rel="stylesheet" href="css/normalize.min.css" />
+        <link rel="stylesheet" href="css/main.css" />
+
+        <script src="js/vendor/modernizr-2.6.2-respond-1.1.0.min.js"></script>
     </head>
     <body>
-        <canvas id="c"></canvas>
-        <div id="hint">move gently</div>
+        <p>Links:</p>
+        <ul>
+            <li>
+                <a href="distance_equation_v1.html"
+                    >distance based opacity v1</a
+                >
+            </li>
+            <li>
+                <a href="distance_equation_v2.html"
+                    >distance based opacity v2</a
+                >
+            </li>
+            <li>
+                <a href="parallax-template/">parallax-template</a>
+            </li>
+            <li>
+                <a href="fermet_spiral_vogel_model/"
+                    >Fermet Spiral Vogel Model</a
+                >
+            </li>
+        </ul>
 
+        <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
         <script>
-            const canvas = document.getElementById("c");
-            const ctx = canvas.getContext("2d");
-            const hint = document.getElementById("hint");
-
-            let W, H;
-            function resize() {
-                W = canvas.width = window.innerWidth;
-                H = canvas.height = window.innerHeight;
-            }
-            resize();
-            window.addEventListener("resize", resize);
-
-            // Hue cycling state
-            let hue = 200;
-            let hintTimer = setTimeout(
-                () => hint.classList.add("hidden"),
-                3000,
-            );
-
-            // Blob pool
-            const blobs = [];
-            const MAX_BLOBS = 180;
-
-            class Blob {
-                constructor(x, y, h) {
-                    this.x = x;
-                    this.y = y;
-                    this.vx = (Math.random() - 0.5) * 1.4;
-                    this.vy = -(0.9 + Math.random() * 0.8);
-                    this.baseRadius = 28 + Math.random() * 38;
-                    this.radius = this.baseRadius;
-                    this.hue = h;
-                    this.saturation = 90 + Math.random() * 10;
-                    this.lightness = 26 + Math.random() * 12;
-                    this.alpha = 0;
-                    this.targetAlpha = 0.72 + Math.random() * 0.22;
-                    this.life = 0;
-                    this.maxLife = 140 + Math.random() * 100;
-                    this.gravity = 0.018 + Math.random() * 0.014;
-                    this.wobble = Math.random() * Math.PI * 2;
-                    this.wobbleSpeed = 0.008 + Math.random() * 0.012;
-                    this.jitterFrames = 10 + Math.floor(Math.random() * 6);
-                    this.born = false;
-                }
-
-                update() {
-                    this.life++;
-                    this.wobble += this.wobbleSpeed;
-                    this.vy += this.gravity;
-                    this.vx *= 0.995;
-                    this.x += this.vx + Math.sin(this.wobble) * 0.25;
-                    this.y += this.vy;
-
-                    // Spawn jitter — radius pulses erratically for first few frames
-                    if (this.life <= this.jitterFrames) {
-                        const t = this.life / this.jitterFrames;
-                        const jitter = (1 - t) * this.baseRadius * 0.22;
-                        this.radius =
-                            this.baseRadius +
-                            (Math.random() - 0.5) * 2 * jitter;
-                    } else {
-                        this.radius = this.baseRadius;
-                    }
-
-                    // Fade in
-                    if (this.life < 18) {
-                        this.alpha = (this.life / 18) * this.targetAlpha;
-                    }
-                    // Hold then fade out
-                    const fadeStart = this.maxLife - 40;
-                    if (this.life > fadeStart) {
-                        this.alpha =
-                            this.targetAlpha *
-                            (1 - (this.life - fadeStart) / 40);
-                    }
-
-                    return this.life < this.maxLife && this.alpha > 0;
-                }
-
-                draw(ctx) {
-                    const a = Math.max(0, this.alpha);
-                    if (a <= 0) return;
-                    const grad = ctx.createRadialGradient(
-                        this.x,
-                        this.y,
-                        0,
-                        this.x,
-                        this.y,
-                        this.radius,
-                    );
-                    grad.addColorStop(
-                        0,
-                        `hsla(${this.hue},${this.saturation}%,${this.lightness}%,${a})`,
-                    );
-                    grad.addColorStop(
-                        0.5,
-                        `hsla(${this.hue},${this.saturation}%,${this.lightness - 6}%,${a * 0.82})`,
-                    );
-                    grad.addColorStop(
-                        1,
-                        `hsla(${this.hue},${this.saturation}%,${this.lightness - 18}%,0)`,
-                    );
-                    ctx.beginPath();
-                    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-                    ctx.fillStyle = grad;
-                    ctx.fill();
-                }
-            }
-
-            // Spark pool
-            const sparks = [];
-            const MAX_SPARKS = 320;
-
-            class Spark {
-                constructor(x, y, h) {
-                    const angle = Math.random() * Math.PI * 2;
-                    const speed = 0.8 + Math.random() * 2.8;
-                    this.x = x;
-                    this.y = y;
-                    this.vx = Math.cos(angle) * speed;
-                    this.vy = Math.sin(angle) * speed - 0.6;
-                    this.hue = (h + (Math.random() - 0.5) * 30 + 360) % 360;
-                    this.saturation = 88 + Math.random() * 12;
-                    this.lightness = 68 + Math.random() * 20;
-                    this.alpha = 0.9 + Math.random() * 0.1;
-                    this.len = 3 + Math.random() * 6;
-                    this.life = 0;
-                    this.maxLife = 28 + Math.random() * 32;
-                    this.gravity = 0.055 + Math.random() * 0.04;
-                    this.drag = 0.93 + Math.random() * 0.04;
-                }
-
-                update() {
-                    this.life++;
-                    this.vy += this.gravity;
-                    this.vx *= this.drag;
-                    this.vy *= this.drag;
-                    this.x += this.vx;
-                    this.y += this.vy;
-                    this.alpha = (1 - this.life / this.maxLife) * 0.95;
-                    return this.life < this.maxLife;
-                }
-
-                draw(ctx) {
-                    if (this.alpha <= 0) return;
-                    const speed = Math.sqrt(
-                        this.vx * this.vx + this.vy * this.vy,
-                    );
-                    const tx = this.x - this.vx * this.len * 0.5;
-                    const ty = this.y - this.vy * this.len * 0.5;
-                    ctx.beginPath();
-                    ctx.moveTo(tx, ty);
-                    ctx.lineTo(this.x, this.y);
-                    ctx.strokeStyle = `hsla(${this.hue},${this.saturation}%,${this.lightness}%,${this.alpha})`;
-                    ctx.lineWidth = 1 + this.alpha * 1.2;
-                    ctx.lineCap = "round";
-                    ctx.stroke();
-                    // bright tip dot
-                    ctx.beginPath();
-                    ctx.arc(this.x, this.y, 0.8 + this.alpha, 0, Math.PI * 2);
-                    ctx.fillStyle = `hsla(${this.hue},100%,90%,${this.alpha * 0.8})`;
-                    ctx.fill();
-                }
-            }
-
-            function spawnSparks(x, y, count) {
-                for (let i = 0; i < count; i++) {
-                    if (sparks.length >= MAX_SPARKS) sparks.shift();
-                    sparks.push(new Spark(x, y, hue));
-                }
-            }
-
-            // Mouse / touch tracking
-            let mx = W / 2,
-                my = H / 2;
-            let lastX = mx,
-                lastY = my;
-            let moveSpeed = 0;
-            let spawnAccum = 0;
-            let sparkAccum = 0;
-            let hasInteracted = false;
-
-            function spawnBlob(x, y) {
-                if (blobs.length >= MAX_BLOBS) {
-                    const oldIdx = blobs.findIndex(
-                        (b) => b.life > b.maxLife * 0.6,
-                    );
-                    if (oldIdx !== -1) blobs.splice(oldIdx, 1);
-                    else return;
-                }
-                hue = (hue + 1.6) % 360;
-                const jitter = 16;
-                blobs.push(
-                    new Blob(
-                        x + (Math.random() - 0.5) * jitter,
-                        y + (Math.random() - 0.5) * jitter,
-                        hue,
-                    ),
+            window.jQuery ||
+                document.write(
+                    '<script src="js/vendor/jquery-1.9.1.min.js"><\/script>',
                 );
-                // burst of sparks on each blob birth
-                spawnSparks(x, y, 3 + Math.floor(Math.random() * 3));
-            }
-
-            document.addEventListener("mousemove", (e) => {
-                mx = e.clientX;
-                my = e.clientY;
-                if (!hasInteracted) {
-                    hasInteracted = true;
-                    hint.classList.add("hidden");
-                }
-            });
-
-            document.addEventListener(
-                "touchmove",
-                (e) => {
-                    e.preventDefault();
-                    const t = e.touches[0];
-                    mx = t.clientX;
-                    my = t.clientY;
-                    if (!hasInteracted) {
-                        hasInteracted = true;
-                        hint.classList.add("hidden");
-                    }
-                },
-                { passive: false },
-            );
-
-            document.addEventListener(
-                "touchstart",
-                (e) => {
-                    const t = e.touches[0];
-                    mx = t.clientX;
-                    my = t.clientY;
-                },
-                { passive: true },
-            );
-
-            // Cursor glow
-            let cursorGlow = { x: W / 2, y: H / 2, alpha: 0 };
-
-            function drawCursor(x, y) {
-                const g = ctx.createRadialGradient(x, y, 0, x, y, 22);
-                g.addColorStop(0, `hsla(${hue}, 70%, 85%, 0.55)`);
-                g.addColorStop(1, `hsla(${hue}, 70%, 70%, 0)`);
-                ctx.beginPath();
-                ctx.arc(x, y, 22, 0, Math.PI * 2);
-                ctx.fillStyle = g;
-                ctx.fill();
-            }
-
-            // Ambient particles that drift even without mouse
-            const ambient = [];
-            function spawnAmbient() {
-                if (ambient.length > 12) return;
-                const b = new Blob(
-                    Math.random() * W,
-                    H * 0.3 + Math.random() * H * 0.4,
-                    (hue + 60 + Math.random() * 80) % 360,
-                );
-                b.targetAlpha *= 0.35;
-                b.radius *= 0.6;
-                b.gravity *= 0.4;
-                b.maxLife *= 1.6;
-                ambient.push(b);
-            }
-
-            let lastTime = 0;
-            function loop(ts) {
-                requestAnimationFrame(loop);
-                const dt = Math.min(ts - lastTime, 60);
-                lastTime = ts;
-
-                // Fade background — soft trail
-                ctx.fillStyle = "rgba(13,15,20, 0.07)";
-                ctx.fillRect(0, 0, W, H);
-
-                // Spawn blobs based on movement speed
-                const dx = mx - lastX,
-                    dy = my - lastY;
-                moveSpeed = Math.sqrt(dx * dx + dy * dy);
-                lastX += (mx - lastX) * 0.3;
-                lastY += (my - lastY) * 0.3;
-
-                if (hasInteracted) {
-                    const spawnRate = 0.15 + moveSpeed * 0.09;
-                    spawnAccum += spawnRate;
-                    while (spawnAccum >= 1) {
-                        spawnBlob(
-                            lastX + (Math.random() - 0.5) * moveSpeed * 0.5,
-                            lastY + (Math.random() - 0.5) * moveSpeed * 0.5,
-                        );
-                        spawnAccum--;
-                    }
-                    // continuous fine spark trail proportional to speed
-                    sparkAccum += 0.08 + moveSpeed * 0.18;
-                    while (sparkAccum >= 1) {
-                        if (sparks.length < MAX_SPARKS)
-                            sparks.push(new Spark(lastX, lastY, hue));
-                        sparkAccum--;
-                    }
-                }
-
-                // Ambient blobs
-                if (Math.random() < 0.025) spawnAmbient();
-
-                // Draw sparks (beneath blobs so they peek through)
-                ctx.globalCompositeOperation = "screen";
-                for (let i = sparks.length - 1; i >= 0; i--) {
-                    if (!sparks[i].update()) {
-                        sparks.splice(i, 1);
-                        continue;
-                    }
-                    sparks[i].draw(ctx);
-                }
-
-                // Draw ambient
-                ctx.globalCompositeOperation = "screen";
-                for (let i = ambient.length - 1; i >= 0; i--) {
-                    if (!ambient[i].update()) {
-                        ambient.splice(i, 1);
-                        continue;
-                    }
-                    ambient[i].draw(ctx);
-                }
-
-                // Draw blobs with screen blending for luminous mix
-                ctx.globalCompositeOperation = "screen";
-                for (let i = blobs.length - 1; i >= 0; i--) {
-                    if (!blobs[i].update()) {
-                        blobs.splice(i, 1);
-                        continue;
-                    }
-                    blobs[i].draw(ctx);
-                }
-
-                // Cursor glow on top
-                if (hasInteracted) {
-                    ctx.globalCompositeOperation = "screen";
-                    drawCursor(lastX, lastY);
-                }
-
-                ctx.globalCompositeOperation = "source-over";
-            }
-
-            requestAnimationFrame(loop);
         </script>
+
+        <script src="js/main.js"></script>
     </body>
 </html>
